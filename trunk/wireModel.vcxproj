@@ -1,0 +1,131 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectName>photonVolumeModel</ProjectName>
+    <ProjectGuid>{0E2594F9-A9D9-49DF-BCE6-914E73A47307}</ProjectGuid>
+    <RootNamespace>wireModel</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Configuration)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</LinkIncremental>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Configuration)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>D:\working\visionComputing\siftImplement;D:\working\visualIR\cluster_25d;D:\working\diffGauss;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>wsock32.lib;fltk.lib;comctl32.lib;fltkgl.lib;opengl32.lib;glu32.lib;glew32.lib;libfftw-3.2.2.lib;FreeImage.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <IgnoreSpecificDefaultLibraries>msvcrt;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>D:\working\visionComputing\siftImplement;D:\working\diffGauss;D:\working\visualIR\cluster_25d;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>FreeImage.lib;wsock32.lib;fltk.lib;comctl32.lib;fltkgl.lib;opengl32.lib;glu32.lib;glew32.lib;libfftw-3.2.2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\diffGauss\layer3D.cpp" />
+    <ClCompile Include="..\diffGauss\volumeData.cpp" />
+    <ClCompile Include="..\visionComputing\siftImplement\define.cpp" />
+    <ClCompile Include="..\visionComputing\siftImplement\denseMatrix.cpp" />
+    <ClCompile Include="..\visionComputing\siftImplement\imageIO.cpp" />
+    <ClCompile Include="..\visionComputing\siftImplement\layer.cpp" />
+    <ClCompile Include="..\visionComputing\siftImplement\layerOperation.cpp" />
+    <ClCompile Include="..\visionComputing\siftImplement\matrixOperation.cpp" />
+    <ClCompile Include="..\visualIR\cluster_25d\texture.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="..\visionComputing\siftImplement\myMath.cpp" />
+    <ClCompile Include="myVolume.cpp" />
+    <ClCompile Include="myWinApp.cpp" />
+    <ClCompile Include="myWindow.cxx" />
+    <ClCompile Include="renderShading.cpp" />
+    <ClCompile Include="renderWire.cpp" />
+    <ClCompile Include="shader.cpp" />
+    <ClCompile Include="TRIModel.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\diffGauss\layer3D.h" />
+    <ClInclude Include="..\diffGauss\volumeData.h" />
+    <ClInclude Include="..\visionComputing\siftImplement\define.h" />
+    <ClInclude Include="..\visionComputing\siftImplement\denseMatrix.h" />
+    <ClInclude Include="..\visionComputing\siftImplement\imageIO.h" />
+    <ClInclude Include="..\visionComputing\siftImplement\layer.h" />
+    <ClInclude Include="..\visionComputing\siftImplement\layerOperation.h" />
+    <ClInclude Include="..\visionComputing\siftImplement\matrixOperation.h" />
+    <ClInclude Include="..\visualIR\cluster_25d\texture.h" />
+    <ClInclude Include="main.h" />
+    <ClInclude Include="..\visionComputing\siftImplement\myMath.h" />
+    <ClInclude Include="myVolume.h" />
+    <ClInclude Include="myWinApp.h" />
+    <ClInclude Include="myWindow.h" />
+    <ClInclude Include="renderShading.h" />
+    <ClInclude Include="renderWire.h" />
+    <ClInclude Include="shader.h" />
+    <ClInclude Include="TRIModel.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
