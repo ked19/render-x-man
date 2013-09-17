@@ -1,0 +1,281 @@
+# data file for the Fltk User Interface Designer (fluid)
+version 1.0109 
+header_name {.h} 
+code_name {.cxx}
+decl {\#include "myWinApp.h"} {public global
+} 
+
+Function {make_window()} {open
+} {
+  Fl_Window pMain_win {
+    label renderXman open
+    xywh {518 103 1390 769} type Double visible
+  } {
+    Fl_Menu_Bar pMain_menu {open
+      xywh {0 0 1390 20}
+    } {}
+    Fl_Group pRender_glWin {open
+      xywh {0 20 1020 745}
+      class MyGlWindow
+    } {}
+    Fl_Group pEOChange_group {open
+      xywh {1025 135 170 50} box DOWN_BOX
+    } {
+      Fl_Round_Button pEyes_buttn {
+        label eyes
+        user_data pEOChange_group
+        callback SetEyes
+        xywh {1030 140 64 15} down_box ROUND_DOWN_BOX
+      }
+      Fl_Round_Button pObj_buttn {
+        label obj
+        user_data pEOChange_group
+        callback SetObj
+        xywh {1030 160 64 15} down_box ROUND_DOWN_BOX value 1
+      }
+    }
+    Fl_Group pProjChange_group {open
+      xywh {1025 190 170 55} box DOWN_BOX
+    } {
+      Fl_Round_Button pParal_buttn {
+        label parallel
+        user_data pProjChange_group
+        callback SetParal
+        xywh {1030 195 64 15} down_box ROUND_DOWN_BOX
+      }
+      Fl_Round_Button pPersp_buttn {
+        label perspective
+        user_data pProjChange_group
+        callback SetPersp
+        xywh {1030 215 64 15} down_box ROUND_DOWN_BOX value 1
+      }
+    }
+    Fl_Check_Button pCoord_buttn {
+      label coordinate
+      callback SetCoord
+      xywh {1025 250 110 15} down_box DOWN_BOX
+    }
+    Fl_Group pRenderingChange_group {open
+      xywh {1025 20 170 110} box DOWN_BOX
+    } {
+      Fl_Round_Button pWire_buttn {
+        label wire
+        user_data pRenderingChange_group
+        callback SetWire
+        xywh {1030 25 64 15} down_box ROUND_DOWN_BOX
+      }
+      Fl_Round_Button pFlatSh_buttn {
+        label {flat shader}
+        user_data pRenderingChange_group
+        callback SetFlatShading
+        xywh {1030 45 110 15} down_box ROUND_DOWN_BOX value 1
+      }
+      Fl_Round_Button pGouraudSh_buttn {
+        label {Gouraud shader}
+        user_data pRenderingChange_group
+        callback SetGouraudShading
+        xywh {1030 65 130 15} down_box ROUND_DOWN_BOX
+      }
+      Fl_Round_Button pPhongSh_buttn {
+        label {Phong shader}
+        user_data pRenderingChange_group
+        callback SetPhongShading
+        xywh {1030 85 120 15} down_box ROUND_DOWN_BOX
+      }
+      Fl_Round_Button pVolume_buttn {
+        label volume
+        xywh {1030 100 64 25} down_box ROUND_DOWN_BOX deactivate
+      }
+    }
+    Fl_Value_Slider pDisAtt_valScl {
+      label {distance attenuation}
+      callback ChangeDisAtt
+      xywh {1208 35 180 25} type {Horz Knob} align 1 maximum 8 step 0.02 value 1
+    }
+    Fl_Value_Slider pSmpNum_valScl {
+      label {sample number}
+      callback ChangeSmpNum
+      xywh {1208 78 180 25} type {Horz Knob} align 1 minimum 500 maximum 2000 step 100 value 500
+    }
+    Fl_Value_Slider pBriScl_valScl {
+      label {bright scale}
+      callback ChangeBriScl selected
+      xywh {1208 121 180 25} type {Horz Knob} align 1 minimum 1 maximum 20 step 0.2 value 1
+    }
+    Fl_Value_Slider pOpaScl_valScl {
+      label {opacity scale}
+      callback ChangeOpaScl
+      xywh {1208 164 180 25} type {Horz Knob} align 1 maximum 0.5 step 0.005 value 0.2
+    }
+    Fl_Group pSptMsk_group {open
+      xywh {1208 209 180 70} box DOWN_BOX
+    } {
+      Fl_Value_Slider pMskThrd_valScl {
+        label {mask threshold}
+        callback ChangeMskThrd
+        xywh {1213 229 170 25} type {Horz Knob} align 1 value 0.5
+      }
+      Fl_Button pRelit_bttn {
+        label {re-lighting}
+        callback Relight
+        xywh {1213 254 170 20}
+      }
+    }
+    Fl_Group pAmip_group {open
+      xywh {1208 297 180 75} box DOWN_BOX
+    } {
+      Fl_Check_Button pMIP_bttn {
+        label {advanced MIP}
+        callback SetMIP
+        xywh {1212 302 64 15} down_box DOWN_BOX
+      }
+      Fl_Value_Slider pOccScl_valScl {
+        label {occlusion attenuation}
+        callback ChangeOccScl
+        xywh {1213 337 170 30} type {Horz Knob} align 1 value 0.2
+      }
+    }
+    Fl_Group pXClip_group {open
+      xywh {1208 394 180 69} box DOWN_BOX
+    } {
+      Fl_Check_Button pXClip_bttn {
+        label {x clipping plane}
+        callback SetXClipping
+        xywh {1213 394 30 25} down_box DOWN_BOX
+      }
+      Fl_Check_Button pXFront_bttn {
+        label {front clipping}
+        callback SetXFront
+        xywh {1213 414 25 25} down_box DOWN_BOX
+      }
+      Fl_Value_Slider pXPlanel_valScl {
+        label {bright scale}
+        callback ChangeXPlane
+        xywh {1213 436 170 25} type {Horz Knob} labeltype NO_LABEL align 1
+      }
+    }
+    Fl_Group pYClip_group {open
+      xywh {1208 464 180 70} box DOWN_BOX
+    } {
+      Fl_Check_Button pYClip_bttn {
+        label {y clipping plane}
+        callback SetYClipping
+        xywh {1213 464 30 25} down_box DOWN_BOX
+      }
+      Fl_Check_Button pYFront_bttn {
+        label {front clipping}
+        callback SetYFront
+        xywh {1213 484 25 25} down_box DOWN_BOX
+      }
+      Fl_Value_Slider pYPlanel_valScl {
+        label {bright scale}
+        callback ChangeYPlane
+        xywh {1213 507 170 25} type {Horz Knob} labeltype NO_LABEL align 1
+      }
+    }
+    Fl_Group pZClip_group {open
+      xywh {1208 537 180 72} box DOWN_BOX
+    } {
+      Fl_Check_Button pZClip_bttn {
+        label {z clipping plane}
+        callback SetZClipping
+        xywh {1213 537 30 25} down_box DOWN_BOX
+      }
+      Fl_Check_Button pZFront_bttn {
+        label {front clipping}
+        callback SetZFront
+        xywh {1213 557 25 25} down_box DOWN_BOX
+      }
+      Fl_Value_Slider pZPlanel_valScl {
+        label {bright scale}
+        callback ChangeZPlane
+        xywh {1213 581 170 25} type {Horz Knob} labeltype NO_LABEL align 1
+      }
+    }
+    Fl_Button pStereo_bttn {
+      label {traditional stereo}
+      callback RunStereo
+      xywh {1025 299 170 25}
+    }
+    Fl_Group pXtereo_group {open
+      xywh {1025 329 170 294} box DOWN_BOX
+    } {
+      Fl_Check_Button pDivResult_bttn {
+        label {division result}
+        callback SetDivShow
+        xywh {1028 334 112 15} down_box DOWN_BOX
+      }
+      Fl_Check_Button pRndDist_bttn {
+        label {random distribution}
+        callback SetRandDis
+        xywh {1028 354 147 15} down_box DOWN_BOX value 1
+      }
+      Fl_Value_Slider pDivion_valScl {
+        label {divsion scale}
+        callback ChangeDivThrd
+        xywh {1030 388 160 20} type {Horz Knob} align 1 minimum 1 maximum 8 step 0.1 value 2 textsize 14
+      }
+      Fl_Group {} {open
+        xywh {1030 418 160 51} box DOWN_BOX
+      } {
+        Fl_Check_Button pLighting_bttn {
+          label {key value}
+          callback SetBrightness
+          xywh {1032 418 88 25} down_box DOWN_BOX value 1
+        }
+        Fl_Value_Slider pGamma_valScl {
+          label {gamma power}
+          callback ChangeBrightness
+          xywh {1034 444 151 20} type {Horz Knob} labeltype NO_LABEL align 1 minimum 0.1 maximum 0.9 step 0.05 value 0.15 textsize 14
+        }
+      }
+      Fl_Group {} {open
+        xywh {1030 478 165 52} box DOWN_BOX labeltype NO_LABEL
+      } {
+        Fl_Check_Button pContour_bttn {
+          label {gamma factor}
+          callback SetContrast
+          xywh {1033 483 117 15} down_box DOWN_BOX value 1
+        }
+        Fl_Value_Slider pContour_valScl {
+          label ratio
+          callback ChangeContrast
+          xywh {1034 505 156 20} type {Horz Knob} labeltype NO_LABEL align 1 minimum 0.5 maximum 2.5 step 0.1 value 1.5 textsize 14
+        }
+      }
+      Fl_Group {} {open
+        xywh {1030 540 165 52} box DOWN_BOX labeltype NO_LABEL
+      } {
+        Fl_Check_Button pDim_bttn {
+          label {dimming factor}
+          callback SetDim
+          xywh {1033 545 117 15} down_box DOWN_BOX value 1
+        }
+        Fl_Value_Slider pDim_valScl {
+          label ratio
+          callback ChangeDim
+          xywh {1034 567 156 20} type {Horz Knob} labeltype NO_LABEL align 1 minimum 0.1 maximum 0.5 step 0.05 value 0.3 textsize 14
+        }
+      }
+      Fl_Button pStFusion_bttn {
+        label Xtereo
+        callback RunStFusion
+        xywh {1030 601 160 20}
+      }
+    }
+    Fl_Check_Button pFps_buttn {
+      label fps
+      callback CountFps
+      xywh {1025 265 110 15} down_box DOWN_BOX
+    }
+  }
+  code {static Fl_Menu_Item aMainItem[] = 
+{
+    {"file", 0, 0, 0, FL_SUBMENU},
+        {"load model", 0, LoadModel, pRenderingChange_group},
+        {0},
+    {"reload TF", 0, ReloadTF},
+    {0},
+};
+pMain_menu->menu(aMainItem);} {}
+} 
