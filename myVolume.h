@@ -9,7 +9,6 @@
 #include "myWinApp.h"
 #include "layerOperation.h"
 #include "texture.h"
-#include "denseMatrix.h"
 
 #include <iostream>
 #include <fstream>
@@ -75,8 +74,8 @@ private:
 
 	bool m_bShdInit;
 	Layer *m_pLyrShdInit;
-	float *m_pShadow;
-	Tex3D *m_pTexShadow;
+	float *m_pShadow;	Tex3D *m_pTexShadow;
+	float *m_pShLocal;	Tex3D *m_pTexShLocal;
 
 	float *m_pMsk;
 	Tex3D *m_pTexMsk;
@@ -94,11 +93,11 @@ extern bool bDivShow;
 extern bool bRndDis;
 extern DATA divThrd;
 
-extern bool bBrightness_div;
-extern DATA brightnessVal;
+extern bool bKey_div;
+extern DATA keyVal;
 
-extern bool bContrast_div;
-extern DATA contrastVal;
+extern bool bFeature_div;
+extern DATA featureVal;
 
 extern bool bDim_div;
 extern DATA dimVal;

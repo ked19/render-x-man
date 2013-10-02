@@ -36,7 +36,7 @@ extern DATA disAtt;
 extern DATA opaScl;
 extern DATA briScl;
 extern DATA smpNum;
-extern DATA mskThrd;
+extern DATA localL;
 
 extern bool bMIP;
 extern DATA occScl;
@@ -57,6 +57,10 @@ extern bool bFusion;
 extern bool bDivShow;
 extern DATA divThrd;
 
+extern Vect3D<DATA> dimRatio;
+extern Vect3D<DATA> pG;
+extern Vect3D<DATA> pR;
+
 void LoadModel	(Fl_Widget *w, void *v);
 void ReloadTF	(Fl_Widget *w, void *v);
 
@@ -75,7 +79,7 @@ void ChangeOpaScl		(Fl_Widget *w, void *v);
 void ChangeBriScl		(Fl_Widget *w, void *v);
 void ChangeSmpNum		(Fl_Widget *w, void *v);
 
-void ChangeMskThrd		(Fl_Widget *w, void *v);
+void ChangeLocalL		(Fl_Widget *w, void *v);
 void Relight			(Fl_Widget *w, void *v);
 
 void SetMIP				(Fl_Widget *w, void *v);
@@ -106,8 +110,8 @@ void SetAODiv			(Fl_Widget *w, void *v);
 void SetDisDiv			(Fl_Widget *w, void *v);
 void ChangeDivThrd		(Fl_Widget *w, void *v);
 
-void SetBrightness		(Fl_Widget *w, void *v);		void ChangeBrightness	(Fl_Widget *w, void *v);
-void SetContrast		(Fl_Widget *w, void *v);		void ChangeContrast		(Fl_Widget *w, void *v);
+void SetKey				(Fl_Widget *w, void *v);		void ChangeKey			(Fl_Widget *w, void *v);
+void SetFeature			(Fl_Widget *w, void *v);		void ChangeFeaScl		(Fl_Widget *w, void *v);
 void SetDim				(Fl_Widget *w, void *v);		void ChangeDim			(Fl_Widget *w, void *v);
 
 void RunStFusion		(Fl_Widget *w, void *v);
