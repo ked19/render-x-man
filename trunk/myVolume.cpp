@@ -17,16 +17,22 @@ Shader *pFusionSh = 0;
 //DIVISION_TYPE eDivMethod = DISTANCE;
 bool bDivShow = false;
 bool bRndDis = true;
-DATA divThrd = 2.F;
+DATA divThrd = 0.02F;
 
-bool bBrightness_div = true;
-DATA brightnessVal = 0.15F; 
+bool bKey_div = true;
+DATA keyVal = 0.25F; 
 
-bool bContrast_div = true;
-DATA contrastVal = 1.5F;
+bool bFeature_div = true;
+DATA featureVal = 10.F;
 
 bool bDim_div = true;
-DATA dimVal = 0.3F;
+DATA dimVal;
+
+Vect3D<DATA> dimRatio(0, 0, 0);
+Vect3D<DATA> pR(0.55F, 0.45F, 0.45F);
+Vect3D<DATA> pG(0.45F, 0.55F, 0.55F);
+//Vect3D<DATA> pR(0.5F, 0.5F, 0.5F);
+//Vect3D<DATA> pG(0.65F, 0.5F, 0.5F);
 
 MyVolume::MyVolume(string f)
 	:m_vDim(0, 0, 0), m_vStep(0, 0, 0), m_pData(0), m_pTexData(0) 
@@ -37,6 +43,7 @@ MyVolume::MyVolume(string f)
 	,m_colDim(0), m_pColor(0), m_pId(0), m_pTexId(0)
 	,m_bShdInit(false), m_pLyrShdInit(0)
 	,m_pShadow(0), m_pTexShadow(0)
+	,m_pShLocal(0), m_pTexShLocal(0)
 	,m_pMsk(0), m_pTexMsk(0)
 {
 	m_fName = f;
@@ -83,6 +90,7 @@ MyVolume::~MyVolume()
 	delete []m_pId;			delete m_pTexId;
 	delete []m_pPreint;		delete m_pTexPreint;
 	delete []m_pShadow;		delete m_pTexShadow;
+	delete []m_pShLocal;	delete m_pTexShLocal;
 	delete []m_pMsk;		delete m_pTexMsk;
 	delete []m_pBAct;		delete m_pTexAct;
 	delete m_pVolF;
@@ -243,8 +251,36 @@ void MyVolume::DecideActBlock()
 void GenPreint(Layer &lyrPreint, float *pColor, unsigned dimColor)
 {
 	Vect3D<unsigned> dimPreint = lyrPreint.GetDim();
-	unsigned intNum = 1000;
 
+	
+	cout << "pre-integration." << endl;
+	for(unsigned y=0; y<dimPreint.m_y; y++)
+	{
+		cout << y << " ";
+		for(unsigned x=0; x<dimPreint.m_x; x++)
+		{
+			unsigned max = (x>y)? x: y;
+			unsigned min = (x>y)? y: x;
+			float aC[] = {0, 0, 0, 0};
+			for(unsigned j=min; j<=max; j++)
+			{
+				for(unsigned i=0; i<3; i++)
+				{
+					aC[i] += pColor[j*4+i] * pColor[j*4+3]; // / 2.f;
+				}
+				aC[3] += pColor[j*4+3]; // / 2.f;
+			}
+			for(unsigned i=0; i<4; i++)
+			{
+				aC[i] /= (max - min + 1);
+				lyrPreint.CellRef(x, y, i) = aC[i];
+			}
+		}
+	}
+	cout << "ok" << endl;
+	
+	/*
+	unsigned intNum = 1000;
 	cout << "pre-integration." << endl;
 	for(unsigned y=0; y<dimPreint.m_y; y++)
 	{
@@ -291,6 +327,7 @@ void GenPreint(Layer &lyrPreint, float *pColor, unsigned dimColor)
 		}
 	}
 	cout << "ok" << endl;
+	*/
 }
 
 void MyVolume::GetColor()
@@ -576,12 +613,14 @@ unsigned GetShdLocX(Vect3D<unsigned> vPlane, Vect3D<unsigned>dim)
 void MyVolume::MakeShadow(DATA mskThd)
 {
 	unsigned shdLen = 200;
-	unsigned avgLen = 1;
-	DATA devG = 1.8F;
+	unsigned GLen = 7;
+	DATA devG = 1.5F;
+	Mtx mG(GLen, GLen);
+	mtxOp.Gauss.Gen(mG, devG, devG, true);
 
-	Vect3D<DATA> dimRatio(m_vDim.m_x*m_vStep.m_x,
-						  m_vDim.m_y*m_vStep.m_y,
-						  m_vDim.m_z*m_vStep.m_z);	
+	dimRatio.m_x = m_vDim.m_x*m_vStep.m_x;
+	dimRatio.m_y = m_vDim.m_y*m_vStep.m_y;
+	dimRatio.m_z = m_vDim.m_z*m_vStep.m_z;	
 	DATA ratioMax = FindMax(dimRatio);
 	Mult(dimRatio, 1.F/ratioMax);
 
@@ -591,12 +630,33 @@ void MyVolume::MakeShadow(DATA mskThd)
 	cout << "dimShd: " << dimShd.m_x << " " << dimShd.m_y << " " << dimShd.m_z << endl;
 
 	unsigned size = dimShd.m_x * dimShd.m_y * dimShd.m_z;
+	unsigned maxD = (dimShd.m_x>dimShd.m_y)? dimShd.m_x: dimShd.m_y;
+	if(dimShd.m_z>maxD) maxD = dimShd.m_z;
+	else {}
+	Mtx *pmS = 0;
+	Mtx *pmN = 0; Mtx *pmF = 0;
 	if(!m_pShadow)
 	{
-		delete []m_pShadow;
-		m_pShadow = new float[size*3];
+		delete []m_pShadow;	m_pShadow = new float[size*3];
+		delete pmS;	pmS = new Mtx(maxD, maxD);
+		delete pmN;	pmN = new Mtx(maxD, maxD);
+		delete pmF;	pmF = new Mtx(maxD, maxD);
 	}
 	else {}
+	if(!m_pShLocal)
+	{
+		delete []m_pShLocal;
+		m_pShLocal = new float[size*3];
+	}
+
+	/*
+	if(!m_pMsk)
+	{
+		delete []m_pMsk;
+		m_pMsk = new float[size];
+	}
+	else {}
+	*/
 
 	bool bRead = false; //false; 
 	string volName = m_fName.substr(m_fName.find_last_of("/")+1);
@@ -609,6 +669,7 @@ void MyVolume::MakeShadow(DATA mskThd)
 		for(unsigned i=0; i<size*3; i++)
 		{
 			m_pShadow[i] = 1.f;
+			m_pShLocal[i] = 0.f;
 		}
 
 		//ReadMsk(m_pMsk, m_fName, dimShd);
@@ -626,15 +687,66 @@ void MyVolume::MakeShadow(DATA mskThd)
 		pLyrSM->CopyTo_zLast(pSM);
 		delete pLyrSM;
 
-		unsigned maxLen = (dimShd.m_x>dimShd.m_y)? dimShd.m_x: dimShd.m_y;
-		if(dimShd.m_z > maxLen)	{maxLen = dimShd.m_z;}
-		else {}
-		Mtx *pMtxP = new Mtx(maxLen, maxLen);
-		Mtx *pMtxN = new Mtx(maxLen, maxLen);
-		Mtx *pMtxF = new Mtx(maxLen, maxLen);
+		/*
+		if(!m_bShdInit)
+		{
+			Vect3D<unsigned> dimG((unsigned)(GLen*dimRatio.m_x + 0.5F), 
+								  (unsigned)(GLen*dimRatio.m_y + 0.5F), 
+								  (unsigned)(GLen*dimRatio.m_z + 0.5F));
+			VolumeData *pVolG = new VolumeData(dimG, m_vStep);
+			lyrOp.Gauss3D.Gen(*pVolG, devG);
 
-		Mtx *pMtxG = new Mtx(avgLen, avgLen);
-		mtxOp.Gauss.Gen(*pMtxG, devG, devG, true);
+			VolumeData *pVolInt = new VolumeData(m_pVolF->GetOrgVolVal());
+			//lyrOp.conv.Gen(pVolInt->GetLyrRef(), pVolG->GetLyrVal());
+
+			
+			//delete m_pLyrShdInit;
+			//m_pLyrShdInit = new Layer(dimShd.m_x, dimShd.m_y, dimShd.m_z);
+			//lyrOp.scaleDim.Gen(*m_pLyrShdInit, pVolInt->GetLyrVal());
+			
+
+			delete m_pLyrShdInit;
+			m_pLyrShdInit = new Layer(dimShd.m_x, dimShd.m_y, dimShd.m_z);
+			for(unsigned z=0; z<dimShd.m_z; z++)
+			{
+				for(unsigned y=0; y<dimShd.m_y; y++)
+				{
+					for(unsigned x=0; x<dimShd.m_x; x++)
+					{
+						DATA s = 0;
+						for(unsigned zz=0; zz<dimG.m_z; zz++)
+						{
+							int zLoc = (int)z + zz - dimG.m_z/2;
+							if(!pVolInt->GetLyrVal().IsCInside(zLoc))	continue;
+							else {}
+							for(unsigned yy=0; yy<dimG.m_y; yy++)
+							{
+								int yLoc = (int)y + yy - dimG.m_y/2;
+								if(!pVolInt->GetLyrVal().IsYInside(yLoc)) continue;
+								else {}
+								for(unsigned xx=0; xx<dimG.m_x; xx++)
+								{
+									int xLoc = (int)x + xx - dimG.m_x/2;
+									if(!pVolInt->GetLyrVal().IsXInside(xLoc)) continue;
+									else {}
+
+									s += pVolInt->CellVal(xLoc, yLoc, zLoc) * pVolG->CellVal(xx, yy, zz);
+								} // xx
+							} // yy
+						} // zz
+
+						m_pLyrShdInit->CellRef(x, y, z) = s;
+					} // x
+				} // y
+			} // z
+
+			delete pVolInt;
+			delete pVolG;
+
+			m_bShdInit = true;
+		}
+		else {}
+		*/
 
 		//***************************************
 
@@ -653,72 +765,63 @@ void MyVolume::MakeShadow(DATA mskThd)
 				float zN = (aPlaneZ[i]-1.f) / aPlaneZ[i] * z;
 				float zF = (aPlaneZ[i]-1.f) / aPlaneZ[i] * (z+1.f);
 				for(unsigned y=0; y<aPlaneY[i]; y++)
-				{ 
+				{
 					for(unsigned x=0; x<aPlaneX[i]; x++)
 					{
-						Vect3D<float> vNPlane(x, y, zN);
+						Vect3D<float> vNPlane((float)x, (float)y, zN);
 						Vect3D<float> vNLoc(0, 0, 0);
 						GetLoc[i](vNLoc, vNPlane, dimP);
 						//cout << "n: " << vNLoc.m_x << " " << vNLoc.m_y << " " << vNLoc.m_z << endl;
 						float nnVal;
 						InterpolateTex3d(&nnVal, m_pData, m_vDim.m_x, m_vDim.m_y, m_vDim.m_z, 1, 
 										vNLoc.m_x, vNLoc.m_y, vNLoc.m_z);
+						pmN->CellRef(x, y) = nnVal;
 									
-						Vect3D<float> vFPlane(x, y, zF);
+						Vect3D<float> vFPlane((float)x, (float)y, zF);
 						Vect3D<float> vFLoc(0, 0, 0);
 						GetLoc[i](vFLoc, vFPlane, dimP);
 						//cout << "f: " << vFLoc.m_x << " " << vFLoc.m_y << " " << vFLoc.m_z << endl;
 						float ffVal;
 						InterpolateTex3d(&ffVal, m_pData, m_vDim.m_x, m_vDim.m_y, m_vDim.m_z, 1, 
 										vFLoc.m_x, vFLoc.m_y, vFLoc.m_z);
+						pmF->CellRef(x, y) = ffVal;
 
 						float aCol[4];
 						InterpolateTex2d(aCol, m_pPreint, m_vPreintDim.m_x, m_vPreintDim.m_y, 4, 
 										nnVal, ffVal);
-
-						pMtxP->CellRef(x, y) = aCol[3];
-						pMtxN->CellRef(x, y) = nnVal;
-						pMtxF->CellRef(x, y) = ffVal;
-					} // x
-				} // y
-
+						pmS->CellRef(x, y) = aCol[3];
+					}
+				}
+				
 				for(unsigned y=0; y<aPlaneY[i]; y++)
 				{
 					for(unsigned x=0; x<aPlaneX[i]; x++)
 					{
-						//int yB = (int)y - avgLen/2;	int yT = yB + avgLen - 1;
-						//int xL = (int)x - avgLen/2;	int xR = xL + avgLen - 1;
-						//if(yB < 0)	yB = 0;	else {}		if(yT >= (int)dimP.m_y)	yT = dimP.m_y - 1;	else {}
-						//if(xL < 0)	xL = 0;	else {}		if(xR >= (int)dimP.m_x)	xR = dimP.m_x - 1;	else {}
-
-						DATA tVal = 0;
-						DATA nVal = 0;
-						DATA fVal = 0;
-						DATA avgSize = 0;
-						//for(unsigned yy=(unsigned)yB; yy<=(unsigned)yT; yy++)
-						for(unsigned yy=0; yy<avgLen; yy++)
+						float tSum = 0;
+						float nVal = 0;	float fVal = 0;
+						float avgSize = 0;
+						for(unsigned yy=0; yy<GLen; yy++)
 						{
-							int yLoc = (int)y - avgLen/2 + yy;
-							if(yLoc<0 || yLoc>=(int)dimP.m_y) continue;
+							int yLoc = (int)y - GLen/2;
+							if(yLoc<0 || yLoc>=(int)dimP.m_y-1)	continue;
 							else {}
-							//for(unsigned xx=(unsigned)xL; xx<=(unsigned)xR; xx++)
-							for(unsigned xx=0; xx<avgLen; xx++)
+
+							for(unsigned xx=0; xx<GLen; xx++)
 							{
-								int xLoc = (int)x - avgLen/2 + xx;
-								if(xLoc<0 || xLoc>=(int)dimP.m_x) continue;
+								int xLoc = (int)x - GLen/2;
+								if(xLoc<0 || xLoc>=(int)dimP.m_x-1)	continue;
 								else {}
 
-								tVal += pMtxP->CellVal(xLoc, yLoc)*pMtxG->CellVal(xx, yy);
-								nVal += pMtxN->CellVal(xLoc, yLoc)*pMtxG->CellVal(xx, yy);
-								fVal += pMtxF->CellVal(xLoc, yLoc)*pMtxG->CellVal(xx, yy);
-								avgSize += pMtxG->CellVal(xx, yy);
+								nVal += (float)( pmN->CellVal(xLoc, yLoc) * mG.CellVal(xx, yy) );
+								fVal += (float)( pmF->CellVal(xLoc, yLoc) * mG.CellVal(xx, yy) );
+								tSum += (float)( pmS->CellVal(xLoc, yLoc) * mG.CellVal(xx, yy) );
+								avgSize += (float)( mG.CellVal(xx, yy) );
 							} // xx
 						} // yy
-						tVal /= avgSize;
+
+						tSum /= avgSize;
 						nVal /= avgSize;
 						fVal /= avgSize;
-//if(nVal > 0.1)
-//cout << nVal << " " << fVal << ",  ";
 
 						Vect3D<unsigned> locNow(x, y, z);
 						unsigned shdLoc = GetShdLoc[i](locNow, dimShd);
@@ -731,9 +834,8 @@ void MyVolume::MakeShadow(DATA mskThd)
 							preVal = m_pShadow[shdPre*3+2-i];
 						}
 						else {}
+
 						
-						//float nMsk = m_pId[(unsigned)(tSum*m_colDim+0.5f)];
-						//float fMsk = nMsk;
 						float nMsk = m_pId[(unsigned)(nVal*m_colDim+0.5f)];
 						float fMsk = m_pId[(unsigned)(fVal*m_colDim+0.5f)];
 						float mskVal = 1.f;
@@ -741,16 +843,15 @@ void MyVolume::MakeShadow(DATA mskThd)
 						else {}
 						if(pSM[shdLoc]==nMsk||pSM[shdLoc]==fMsk)	mskVal = 0;
 						else {}
-						m_pShadow[shdLoc*3+2-i] = preVal + (float)tVal*mskVal; //aCol[3]*mskVal;						
+						m_pShadow[shdLoc*3+2-i] = preVal + tSum*mskVal; //aCol[3]*mskVal;
+						
+						
 					} // x
 				} // y
 			} // z
 			cout << endl;
 		} // i	
 		delete []pSM;
-		delete pMtxP;
-		delete pMtxN;
-		delete pMtxF;
 
 		float shdMax = 0;
 		for(unsigned z=0; z<dimShd.m_z; z++)
@@ -809,6 +910,75 @@ void MyVolume::MakeShadow(DATA mskThd)
 
 	m_pTexShadow = new Tex3D(m_pShadow, dimShd.m_x, dimShd.m_y, dimShd.m_z, 3);
 	m_pTexMsk = new Tex3D(m_pMsk, dimMsk.m_x, dimMsk.m_y, dimMsk.m_z, 1, false, false, false);
+
+	float maxShLocal = -1e10;
+	unsigned locDis = 5;
+	for(unsigned z=0; z<dimShd.m_z; z++)
+	{
+		for(unsigned y=0; y<dimShd.m_y; y++)
+		{
+			for(unsigned x=0; x<dimShd.m_x; x++)
+			{
+				unsigned loc = z*dimShd.m_x*dimShd.m_y + y*dimShd.m_x + x;
+				unsigned locN = (z-locDis)*dimShd.m_x*dimShd.m_y + y*dimShd.m_x + x;
+				unsigned locF = (z+locDis)*dimShd.m_x*dimShd.m_y + y*dimShd.m_x + x;
+				unsigned locB = z*dimShd.m_x*dimShd.m_y + (y-locDis)*dimShd.m_x + x;
+				unsigned locT = z*dimShd.m_x*dimShd.m_y + (y+locDis)*dimShd.m_x + x;
+				unsigned locL = z*dimShd.m_x*dimShd.m_y + y*dimShd.m_x + x-locDis;
+				unsigned locR = z*dimShd.m_x*dimShd.m_y + y*dimShd.m_x + x+locDis;
+
+				float rX = (x+locDis<dimShd.m_x)? (m_pShadow[locR*3] - m_pShadow[loc*3]): 0;
+				float tY = (y+locDis<dimShd.m_y)? (m_pShadow[locT*3+1] - m_pShadow[loc*3+1]): 0;
+				float fZ = (z+locDis<dimShd.m_z)? (m_pShadow[locF*3+2] - m_pShadow[loc*3+2]): 0;
+				float lX = (x>=locDis)? (m_pShadow[loc*3] - m_pShadow[locL*3]): 0;
+				float bY = (y>=locDis)? (m_pShadow[loc*3+1] - m_pShadow[locB*3+1]): 0;
+				float nZ = (z>=locDis)? (m_pShadow[loc*3+2] - m_pShadow[locN*3+2]): 0;
+
+				m_pShLocal[loc*3]   = (rX<lX)? rX: lX;
+				m_pShLocal[loc*3+1] = (tY<bY)? tY: bY;
+				m_pShLocal[loc*3+2] = (fZ<nZ)? fZ: nZ;
+				//if(m_pShLocal[loc*3+1] < m_pShLocal[loc*3]) m_pShLocal[loc*3] = m_pShLocal[loc*3+1];
+				//if(m_pShLocal[loc*3+2] < m_pShLocal[loc*3]) m_pShLocal[loc*3] = m_pShLocal[loc*3+2];
+				//m_pShLocal[loc*3] = (fabs(rX-lX) + fabs(tY-bY) + fabs(fZ-nZ));
+
+				//if(m_pShLocal[loc*3+1]<m_pShLocal[loc*3]) m_pShLocal[loc*3] = m_pShLocal[loc*3+1];
+				//if(m_pShLocal[loc*3+2]<m_pShLocal[loc*3]) m_pShLocal[loc*3] = m_pShLocal[loc*3+2];
+
+				//float lSum = m_pShLocal[loc*3];
+				//if(lSum > maxShLocal)	maxShLocal = lSum;
+				//else {}
+
+				/*
+				float lX = fabs(m_pShadow[locR*3]   - m_pShadow[locL*3]   - 2*m_pShadow[loc*3] );
+				float lY = fabs(m_pShadow[locT*3+1] - m_pShadow[locB*3+1] - 2*m_pShadow[loc*3+1]);
+				float lZ = fabs(m_pShadow[locF*3+2] - m_pShadow[locN*3+2] - 2*m_pShadow[loc*3+2]);
+				float lSum = lX + lY + lZ;
+				if(lSum > maxShLocal)	maxShLocal = lSum;
+				else {}
+
+				m_pShLocal[loc*3]   = lX;
+				m_pShLocal[loc*3+1] = lY;
+				m_pShLocal[loc*3+2] = lZ;
+				*/
+			}
+		}
+	}
+	/*
+	for(unsigned z=locDis; z<=dimShd.m_z-locDis-1; z++)
+	{
+		for(unsigned y=locDis; y<=dimShd.m_y-locDis-1; y++)
+		{
+			for(unsigned x=locDis; x<=dimShd.m_x-locDis-1; x++)
+			{
+				unsigned loc = z*dimShd.m_x*dimShd.m_y + y*dimShd.m_x + x;
+				m_pShLocal[loc*3]   /= maxShLocal;
+				m_pShLocal[loc*3+1] /= maxShLocal;
+				m_pShLocal[loc*3+2] /= maxShLocal;
+			}
+		}
+	}
+	*/
+	m_pTexShLocal = new Tex3D(m_pShLocal, dimShd.m_x, dimShd.m_y, dimShd.m_z, 3);
 }
 
 //*************************************************************************************************
@@ -867,6 +1037,7 @@ void MyVolume::Draw(DATA aaCPlane[][4], unsigned w, unsigned h, unsigned runNo, 
 	static float *pLengthImg = 0;				static Tex2D *pTexLengthImg = 0;
 	static float *apRcast[] = {0, 0};			static Tex2D *apTexRcast[] = {0, 0};
 	static float *apRfuse[] = {0, 0};			static Tex2D *apTexRfuse[] = {0, 0};
+	static float *apRtmp[] = {0, 0};			static Tex2D *apTexRtmp[] = {0, 0};
 	static float *apImg[] = {0, 0, 0, 0, 0};	static Tex2D *apTexImg[] = {0, 0, 0, 0, 0};
 	static MyImg *pImgW = 0; 
 	static Layer *pLyrFrame = 0;				static Mtx *pMtxGray = 0;	
@@ -889,6 +1060,9 @@ void MyVolume::Draw(DATA aaCPlane[][4], unsigned w, unsigned h, unsigned runNo, 
 
 			delete []apRfuse[i];	apRfuse[i] = new float[texSize];
 			delete apTexRfuse[i];	apTexRfuse[i] = new Tex2D(apRfuse[i], w, h, 4);
+
+			delete []apRtmp[i];		apRtmp[i] = new float[texSize];
+			delete apTexRtmp[i];	apTexRtmp[i] = new Tex2D(apRtmp[i], w, h, 4);
 		}
 		for(unsigned i=0; i<5; i++)
 		{
@@ -961,8 +1135,52 @@ void MyVolume::Draw(DATA aaCPlane[][4], unsigned w, unsigned h, unsigned runNo, 
 	else {}
 
 	static int mapNo = 0;
+	//static unsigned char *pStereoBuffer = 0;
+	//static bool bBuffer = false;
 	if(bMap)
 	{
+		/*
+		if(!bBuffer)
+		{
+			unsigned char aS[] = {
+				0x4e, 0x56, 0x33, 0x44,
+				0xAC, 0x0A, 0x00, 0x00,
+				0x00, 0x03, 0x00, 0x00,
+				0x18, 0x00, 0x00, 0x00,
+				0x02, 0x00, 0x00, 0x00};
+
+			pStereoBuffer = new unsigned char[2*w*(h+1)*3];
+			for(unsigned y=0; y<h;y++)
+			{
+				for(unsigned x=0; x<w; x++)
+				{
+					unsigned lLoc = y*w*2 + x;
+					unsigned rLoc = lLoc + w;
+					//unsigned iLoc = y*w + x;
+					for(unsigned c=0; c<3; c++)
+					{
+						pStereoBuffer[lLoc*3+c] = (unsigned char)(apTexRfuse[0]->GetCell(x, y, c) * 255.f);
+						pStereoBuffer[rLoc*3+c] = (unsigned char)(apTexRfuse[1]->GetCell(x, y, c) * 255.f);
+					}
+				}
+			}
+			for(unsigned x=0; x<20; x++)
+			{
+				unsigned sLoc = h*w*2*3;
+				pStereoBuffer[sLoc+x] = aS[x];
+			}
+
+			bBuffer = true;
+		}
+		else {}
+
+		pMain_win->fullscreen();
+		pRender_glWin->fullscreen();
+
+		return;
+		*/
+
+		
 		glUseProgram(pFusionSh->GetProg());
 
 		//glActiveTexture(GL_TEXTURE0);
@@ -973,12 +1191,12 @@ void MyVolume::Draw(DATA aaCPlane[][4], unsigned w, unsigned h, unsigned runNo, 
 		if(bFlip)
 		{
 			glActiveTexture(GL_TEXTURE0);
-			if(!bReadSte || bBrightness_div)	glBindTexture(GL_TEXTURE_2D, apTexImg[0]->GetTexID());
-			else								glBindTexture(GL_TEXTURE_2D, apTexImg[3]->GetTexID());
+			if(!bReadSte || bKey_div)	glBindTexture(GL_TEXTURE_2D, apTexImg[0]->GetTexID());
+			else						glBindTexture(GL_TEXTURE_2D, apTexImg[3]->GetTexID());
 			glUniform1i(pFusionSh->GetUniLoc("smpImg0"), 0);
 			glActiveTexture(GL_TEXTURE1);
-			if(!bReadSte || bBrightness_div)	glBindTexture(GL_TEXTURE_2D, apTexImg[1]->GetTexID());
-			else								glBindTexture(GL_TEXTURE_2D, apTexImg[4]->GetTexID());
+			if(!bReadSte || bKey_div)	glBindTexture(GL_TEXTURE_2D, apTexImg[1]->GetTexID());
+			else						glBindTexture(GL_TEXTURE_2D, apTexImg[4]->GetTexID());
 			glUniform1i(pFusionSh->GetUniLoc("smpImg1"), 1);
 		}
 		else
@@ -1023,6 +1241,7 @@ void MyVolume::Draw(DATA aaCPlane[][4], unsigned w, unsigned h, unsigned runNo, 
 		}
 		else {}
 		return;
+		
 	}
 	else {}
 
@@ -1268,6 +1487,10 @@ void MyVolume::Draw(DATA aaCPlane[][4], unsigned w, unsigned h, unsigned runNo, 
 	glBindTexture(GL_TEXTURE_3D, m_pTexShadow->GetTexID());
 	glUniform1i(pSh->GetUniLoc("smpPhot"), 5);
 
+	glActiveTexture(GL_TEXTURE8);
+	glBindTexture(GL_TEXTURE_3D, m_pTexShLocal->GetTexID());
+	glUniform1i(pSh->GetUniLoc("smpShLocal"), 8);
+
 	glActiveTexture(GL_TEXTURE4);
 	glBindTexture(GL_TEXTURE_2D, m_pTexPreint->GetTexID());
 	glUniform1i(pSh->GetUniLoc("smpColor"), 4);
@@ -1283,12 +1506,27 @@ void MyVolume::Draw(DATA aaCPlane[][4], unsigned w, unsigned h, unsigned runNo, 
 	glUniform2f(pSh->GetUniLoc("v2WinDim"), (float)w, (float)h);
 	glUniform3f(pSh->GetUniLoc("v3BlckRatio"), m_vBlckRatio.m_x, m_vBlckRatio.m_y, m_vBlckRatio.m_z);
 
+
+	DATA planeNum = divThrd * smpNum;
+	DATA planeOpa = pow(1e-6, 1.F/planeNum);
+	planeOpa = 1.F - planeOpa;
+	//dimVal = opaScl;
+	dimVal = opaScl / planeOpa; // / 2.F;
+	//dimVal *= 1.5;
+	//brightnessVal = 0.4;
+//	cout << "planeOpa: " << planeOpa << endl;
+//	cout << "dimVal:" << dimVal << endl;
 	glUniform1f(pSh->GetUniLoc("disAtt"), (float)disAtt);
 	if(pSh != pRc2Sh)	glUniform1f(pSh->GetUniLoc("opaScl"), (float)opaScl);
-	else				glUniform1f(pSh->GetUniLoc("opaScl"), (float)(opaScl*divThrd));
+	else				glUniform1f(pSh->GetUniLoc("opaScl"), (float)planeOpa);
+	//else				glUniform1f(pSh->GetUniLoc("opaScl"), (float)opaScl*divThrd);
+	//glUniform1f(pSh->GetUniLoc("opaScl"), (float)opaScl);
+	//if(pSh == pRc2Sh)	glUniform1f(pSh->GetUniLoc("divThrd"), (float)-divThrd/8.f); //(float)0.f);
+	//else				glUniform1f(pSh->GetUniLoc("divThrd"), (float)divThrd/8.f);
+
 	glUniform1f(pSh->GetUniLoc("briScl"), (float)briScl);
 	glUniform1f(pSh->GetUniLoc("smpNum"), (float)smpNum);
-	//glUniform1f(pSh->GetUniLoc("mskThrd"), (float)mskThrd);
+	glUniform1f(pSh->GetUniLoc("localL"), (float)localL);
 
 	float fMIP = (bMIP)? 1.f: 0;
 	glUniform1f(pSh->GetUniLoc("bMIP"), fMIP);
@@ -1309,10 +1547,22 @@ void MyVolume::Draw(DATA aaCPlane[][4], unsigned w, unsigned h, unsigned runNo, 
 	glUniform1f(pSh->GetUniLoc("bZClip"), fZClip);
 	glUniform1f(pSh->GetUniLoc("bZFront"), fZFront);
 	glUniform1f(pSh->GetUniLoc("zPlane"), (float)zPlane);
-	//glUniform3f(pSh->GetUniLoc("v3DimRatio"), (float)dimRatio.m_x, (float)dimRatio.m_y, (float)dimRatio.m_z);
+	glUniform3f(pSh->GetUniLoc("v3DimRatio"), (float)dimRatio.m_x, (float)dimRatio.m_y, (float)dimRatio.m_z);
 
-	float bBG = (bStereo)? 0: 1.f; 
+
+	//glUniform3f(pSh->GetUniLoc("v3G"), (float)pG.m_x, (float)pG.m_y, (float)pG.m_z);
+	//glUniform3f(pSh->GetUniLoc("v3R"), (float)pR.m_x, (float)pR.m_y, (float)pR.m_z);
+
+	float bBG;
+	if(!bStereo)		bBG = 1.f; 
+	else if(fusNo==0)	bBG = 0.f;
+	else bBG = 0.f;
 	glUniform1f(pSh->GetUniLoc("bBG"), bBG);
+
+	//glUniform1f(pSh->GetUniLoc("depThrd"), divThrd/4.f);
+	//if(!bStereo)		glUniform3f(pSh->GetUniLoc("v3DepThrd"), (float)1.f, (float)1.f, (float)1.f);
+	//else if(fusNo == 0)	glUniform3f(pSh->GetUniLoc("v3DepThrd"), (float)1.f, (float)1.f, (float)1.f);
+	//else				glUniform3f(pSh->GetUniLoc("v3DepThrd"), (float)0.5f, (float)1.f, (float)1.f);
 
 	static float aView[3];
 	static float aViewX[3];
@@ -1330,11 +1580,48 @@ void MyVolume::Draw(DATA aaCPlane[][4], unsigned w, unsigned h, unsigned runNo, 
 		aViewY[0] = (float)(aaEyeVec[1][0]*aaObjVec[0][0] + aaEyeVec[1][1]*aaObjVec[0][1] + aaEyeVec[1][2]*aaObjVec[0][2]);
 		aViewY[1] = (float)(aaEyeVec[1][0]*aaObjVec[1][0] + aaEyeVec[1][1]*aaObjVec[1][1] + aaEyeVec[1][2]*aaObjVec[1][2]);
 		aViewY[2] = (float)(aaEyeVec[1][0]*aaObjVec[2][0] + aaEyeVec[1][1]*aaObjVec[2][1] + aaEyeVec[1][2]*aaObjVec[2][2]);
+		
+		//aView[0] = (float)(aaEyeVec[2][0]*aaObjVec[0][0]*dimRatio.m_x + aaEyeVec[2][1]*aaObjVec[0][1]*dimRatio.m_y + aaEyeVec[2][2]*aaObjVec[0][2]*dimRatio.m_z);
+		//aView[1] = (float)(aaEyeVec[2][0]*aaObjVec[1][0]*dimRatio.m_x + aaEyeVec[2][1]*aaObjVec[1][1]*dimRatio.m_y + aaEyeVec[2][2]*aaObjVec[1][2]*dimRatio.m_z);
+		//aView[2] = (float)(aaEyeVec[2][0]*aaObjVec[2][0]*dimRatio.m_x + aaEyeVec[2][1]*aaObjVec[2][1]*dimRatio.m_y + aaEyeVec[2][2]*aaObjVec[2][2]*dimRatio.m_z);
+
+		//aViewX[0] = (float)(aaEyeVec[0][0]*aaObjVec[0][0]*dimRatio.m_x + aaEyeVec[0][1]*aaObjVec[0][1]*dimRatio.m_y + aaEyeVec[0][2]*aaObjVec[0][2]*dimRatio.m_z);
+		//aViewX[1] = (float)(aaEyeVec[0][0]*aaObjVec[1][0]*dimRatio.m_x + aaEyeVec[0][1]*aaObjVec[1][1]*dimRatio.m_y + aaEyeVec[0][2]*aaObjVec[1][2]*dimRatio.m_z);
+		//aViewX[2] = (float)(aaEyeVec[0][0]*aaObjVec[2][0]*dimRatio.m_x + aaEyeVec[0][1]*aaObjVec[2][1]*dimRatio.m_y + aaEyeVec[0][2]*aaObjVec[2][2]*dimRatio.m_z);
+
+		//aViewY[0] = (float)(aaEyeVec[1][0]*aaObjVec[0][0]*dimRatio.m_x + aaEyeVec[1][1]*aaObjVec[0][1]*dimRatio.m_y + aaEyeVec[1][2]*aaObjVec[0][2]*dimRatio.m_z);
+		//aViewY[1] = (float)(aaEyeVec[1][0]*aaObjVec[1][0]*dimRatio.m_x + aaEyeVec[1][1]*aaObjVec[1][1]*dimRatio.m_y + aaEyeVec[1][2]*aaObjVec[1][2]*dimRatio.m_z);
+		//aViewY[2] = (float)(aaEyeVec[1][0]*aaObjVec[2][0]*dimRatio.m_x + aaEyeVec[1][1]*aaObjVec[2][1]*dimRatio.m_y + aaEyeVec[1][2]*aaObjVec[2][2]*dimRatio.m_z);
 	}
 	else {}
 	glUniform3f(pSh->GetUniLoc("v3View1"),  (float)-aView[0],  (float)-aView[1],  (float)-aView[2]);
 	glUniform3f(pSh->GetUniLoc("v3ViewX1"), (float)-aViewX[0], (float)-aViewX[1], (float)-aViewX[2]);
 	//glUniform3f(pSh->GetUniLoc("v3ViewY1"), (float)-aViewY[0], (float)-aViewY[1], (float)-aViewY[2]);
+
+/*
+	DATA aG[] = {pG.m_x-0.5F, pG.m_y-0.5F, pG.m_z-0.5F};
+	DATA aR[] = {pR.m_x-0.5F, pR.m_y-0.5F, pR.m_z-0.5F};
+	aG[0] *= dimRatio.m_x;	aG[1] *= dimRatio.m_y;	aG[2] *= dimRatio.m_z;
+	aR[0] *= dimRatio.m_x;	aR[1] *= dimRatio.m_y;	aR[2] *= dimRatio.m_z;
+	DATA aGW[3];
+	aGW[0] = aG[0]*aaObjVec[0][0] + aG[1]*aaObjVec[1][0] + aG[2]*aaObjVec[2][0];
+	aGW[1] = aG[0]*aaObjVec[0][1] + aG[1]*aaObjVec[1][1] + aG[2]*aaObjVec[2][1];
+	aGW[2] = aG[0]*aaObjVec[0][2] + aG[1]*aaObjVec[1][2] + aG[2]*aaObjVec[2][2];
+	DATA aRW[3];
+	aRW[0] = aR[0]*aaObjVec[0][0] + aR[1]*aaObjVec[1][0] + aR[2]*aaObjVec[2][0];
+	aRW[1] = aR[0]*aaObjVec[0][1] + aR[1]*aaObjVec[1][1] + aR[2]*aaObjVec[2][1];
+	aRW[2] = aR[0]*aaObjVec[0][2] + aR[1]*aaObjVec[1][2] + aR[2]*aaObjVec[2][2];
+	DATA dd = aGW[2] - aRW[2];
+
+	if(dd < 0)
+	{
+		cout << "r is near than: " << dd << endl;
+	}
+	else
+	{
+		cout << "g is near than: " << dd << endl;
+	}
+*/
 
 	if(pSh == pRc2Sh) {}
 	else {}
@@ -1352,7 +1639,17 @@ void MyVolume::Draw(DATA aaCPlane[][4], unsigned w, unsigned h, unsigned runNo, 
 		glVertex3dv(aaCPlane[3]);
 	glEnd();
 
+	Mtx mtxGauss(7, 7);
+	if(bFusion)
+	{
+		mtxOp.Gauss.Gen(mtxGauss, 1.5F, 1.5F, true);
+	}
+	else {}
+
+	clock_t sTime = clock();
 	static DATA avgV = 0;
+	static DATA wVal = 0;
+	static DATA vMax, vMin, vMR;
 	if(bStereo)
 	{
 		if(!bFusion)
@@ -1373,31 +1670,203 @@ void MyVolume::Draw(DATA aaCPlane[][4], unsigned w, unsigned h, unsigned runNo, 
 			{
 				avgV = 0;	
 				DATA wSum = 0;
+				//unsigned avgNum = 0;
+				vMax = -1e10;	vMin = 1e10;
 				for(unsigned y=0; y<dim.m_y; y++)
 				{
 					for(unsigned x=0; x<dim.m_x; x++)
-					{						
+					{					
+//for(unsigned c=0; c<4; c++)
+//{
+//	apTexRtmp[runNo]->SetCell(pTexRef->GetCell(x, y, c), x, y, c);
+//}
+
 						DATA aRgba[] = {
 							pTexRef->GetCell(x, y, 0),
 							pTexRef->GetCell(x, y, 1),
 							pTexRef->GetCell(x, y, 2),
 							pTexRef->GetCell(x, y, 3)};
 
-						DATA val = myMath.RGB2Gray(aRgba);
+						DATA val = myMath.RGB2Gray(aRgba); // * 2.F;
 						DATA ww = aRgba[3];
 						avgV += log( val*255.F + 1.F) * ww;
 						wSum += ww;
+
+						val *= ww;
+						if(val > vMax)	vMax = val;
+						if(val < vMin)	vMin = val;
 					} // x
 				} // y
 				avgV /= wSum;
 				cout << avgV << " avg0" << endl;
 				avgV = (exp(avgV) - 1.F) / 255.F; 
 				cout << avgV << " normal0" << endl;	
-			} // funNo
+
+				DATA logAvg = log(avgV*255.F+1.F) / log(2.F);
+				DATA logMax = log(vMax*255.F+1.F) / log(2.F);
+				DATA logMin = log(vMin*255.F+1.F) / log(2.F);
+				cout << vMax << " " << vMin << "max/min" << endl;
+				DATA bP = (2.F*logAvg - logMin - logMax) / (logMax - logMin);
+				//brightnessVal = 0.18F * pow((DATA)4.F, bP);
+				//brightnessVal *= 0.5;
+				cout << keyVal << " keyVal" << endl;
+				DATA wP = logMax - logMin - 5.F;
+				wVal = 2.F; //1.5 * pow((DATA)2.F, wP);
+				cout << wVal << " wVal" << endl;
+
+				DATA vMM = keyVal * vMax / avgV;
+				vMR = (vMM + vMax*vMax/4.F) / (1.F+vMM);
+				//vMR = 1.F / vMR;
+				cout << vMR << " vMR" << endl;
+			} // fusNo
+			else if(fusNo == 1)
+			{
+				//for(unsigned y=0; y<dim.m_y; y++)
+				//{
+				//	for(unsigned x=0; x<dim.m_x; x++)
+				//	{
+				//		for(unsigned c=0; c<4; c++)
+				//		{
+				//			pTexRef->SetCell( pTexRef->GetCell(x, y, c) - apTexRtmp[runNo]->GetCell(x, y, c), x, y, c );
+				//		}
+				//	}
+				//}
+			}
 			else {}
 
 			//***********************************
+
+			if(fusNo==1 && bFeature_div)
+			{
+				/*
+				Mtx *apMtxGauss[2];
+				apMtxGauss[0] = new Mtx(10, 10);
+				apMtxGauss[1] = new Mtx(10, 10);
+
+				Mtx mtxG(dim);
+				for(unsigned y=0; y<dim.m_y; y++)
+				{
+					for(unsigned x=0; x<dim.m_x; x++)
+					{
+						DATA aRgb[] = {pTexRef->GetCell(x, y, 0), pTexRef->GetCell(x, y, 1), pTexRef->GetCell(x, y, 2)};
+						mtxG.CellRef(x, y) = myMath.RGB2Gray(aRgb);
+					}
+				}
+				//mtxOp.DoG.Gen(mtxG, apMtxGauss, 1.8F);
+				mtxOp.DoG.GenNPR(mtxG, apMtxGauss, 1.1F, 5.F);
+
+				for(unsigned y=0; y<dim.m_y; y++)
+				{
+					for(unsigned x=0; x<dim.m_x; x++)
+					{
+						mtxG.CellRef(x, y) = 1.F - mtxG.CellVal(x, y);
+					}
+				}
+				 
+				Mtx mtxGauss(5, 5);
+				mtxOp.Gauss.Gen(mtxGauss, 1.5F, 1.5F, true);
+				//Mtx mtxContour(dim);
+				mtxOp.conv.Gen(mtxG, mtxGauss);
+
+				for(unsigned y=0; y<dim.m_y; y++)
+				{
+					for(unsigned x=0; x<dim.m_x; x++)
+					{
+						DATA aRgb[] = {pTexRef->GetCell(x, y, 0), pTexRef->GetCell(x, y, 1), pTexRef->GetCell(x, y, 2)};
+
+						DATA a = mtxG.CellVal(x, y);
+						pTexRef->SetCell(aRgb[0]*a, x, y, 0);
+						pTexRef->SetCell(aRgb[1]*a, x, y, 1);
+						pTexRef->SetCell(aRgb[2]*a, x, y, 2);
+						//pTexRef->SetCell(0, x, y, 3);
+					}
+				}
+			}
+			*/
+				
+				Mtx mtxG(dim);
+				for(unsigned y=0; y<dim.m_y; y++)
+				{
+					for(unsigned x=0; x<dim.m_x; x++)
+					{
+						DATA aRgb[] = {pTexRef->GetCell(x, y, 0), pTexRef->GetCell(x, y, 1), pTexRef->GetCell(x, y, 2)};
+						mtxG.CellRef(x, y) = myMath.RGB2Gray(aRgb);
+					}
+				}
+
+				Mtx mtxE(dim);
+				mtxOp.zero.Gen(mtxE);
+				DATA gMax = 0;
+				for(unsigned y=1; y<dim.m_y-1; y++)
+				{
+					for(unsigned x=1; x<dim.m_x-1; x++)
+					{
+						DATA xD = fabs(mtxG.CellRef(x+1, y) + mtxG.CellVal(x-1, y) - 2.F*mtxG.CellVal(x, y));
+						DATA yD = fabs(mtxG.CellRef(x, y+1) + mtxG.CellVal(x, y-1) - 2.F*mtxG.CellVal(x, y));
+						mtxE.CellRef(x, y) = xD + yD;
+					}
+				}
+				
+				mtxOp.conv.Gen(mtxE, mtxGauss);				
+				
+				DATA vMin, vMax;
+				mtxOp.rng.Gen(vMin, vMax, mtxE);
+				//vMax = 0.436023;
+				//vMax *= 0.5F;
+				DATA fs = featureVal / vMax;
+				mtxOp.mul.Gen(mtxE, fs);
+				//DATA vThrd = vMax * 0.05F;
+				cout << "feature scale: " << fs << endl;
+				
+
+				for(unsigned y=0; y<dim.m_y; y++)
+				{
+					for(unsigned x=0; x<dim.m_x; x++)
+					{
+						DATA aRgb[] = {pTexRef->GetCell(x, y, 0), pTexRef->GetCell(x, y, 1), pTexRef->GetCell(x, y, 2)};
+
+						DATA a = mtxE.CellVal(x, y);
+//if(a > 1.F)	a = 1.F;
+						//a = (a>vThrd)? 1.F: 0;
+						pTexRef->SetCell((float)( aRgb[0]*a ), x, y, 0);
+						pTexRef->SetCell((float)( aRgb[1]*a ), x, y, 1);
+						pTexRef->SetCell((float)( aRgb[2]*a ), x, y, 2);
+						//pTexRef->SetCell(0, x, y, 3);
+					}
+				}
+				
+			}
 			
+			/*
+			if(fusNo==1 && bContrast_div)
+			//if(bContrast_div)
+			{
+				MyImg *pImgT = new MyImg(dim.m_x, dim.m_y, 3);
+				pTexRef->GetCell(*pImgW);
+				lyrOp.mul.Gen(*pImgW, 255.F);
+				imgIO.Write("tmp.bmp", *pImgW);		
+				
+				//system("copy tmp.bmp tt.bmp");
+				//system("cd /D \"c:\\Program Files (x86)\\IrfanView\"");
+				system("i_view32 tmp.bmp /ini=\"d:\\working\\photonVolumeModel_map\" /advancedbatch /bpp=32 /convert=t2.bmp");
+				//system("cd /D \"d:\\working\\photonVolumeModel_map\\t2.bmp\"");
+				//delete pImgW;
+				imgIO.Read(*pImgT, "t2.bmp");
+				for(unsigned y=0; y<dim.m_y; y++)
+				{
+					for(unsigned x=0; x<dim.m_x; x++)
+					{
+						for(unsigned c=0; c<3; c++)
+						{
+							pTexRef->SetCell(pImgT->CellVal(x, y, c)/255.F, x, y, c);
+						}
+					}
+				}
+				delete pImgT;
+			}
+			else {}
+			*/
+
 			for(unsigned y=0; y<dim.m_y; y++)
 			{
 				for(unsigned x=0; x<dim.m_x; x++)
@@ -1406,8 +1875,49 @@ void MyVolume::Draw(DATA aaCPlane[][4], unsigned w, unsigned h, unsigned runNo, 
 						pTexRef->GetCell(x, y, 0),
 						pTexRef->GetCell(x, y, 1),
 						pTexRef->GetCell(x, y, 2),
-						pTexRef->GetCell(x, y, 3)};
+						pTexRef->GetCell(x, y, 3)};					
+						
+					for(unsigned i=0; i<3; i++)
+					{
+						DATA val = aRgba[i];
+
+						if(fusNo == 1)
+						{
+							//if(bContrast_div) {val = pow(val, contrastVal);}
+							//else {}
+
+							if(bDim_div) {val *= dimVal;}
+								//val *= opaScl;//dimVal; //(val-0.5) * dimVal / 0.5 + dimVal;
+							else {}
+
+							aRgba[i] = val;
+						}
+						else {}
+					}
 					
+					if(bKey_div)
+					{
+						for(unsigned i=0; i<3; i++)
+						{
+						
+						DATA val = aRgba[i]; // * 2.F; //myMath.RGB2Gray2(aRgba) * 2.F;
+						DATA valOld = val;
+						val = keyVal * val / avgV;
+						val = (val + valOld*valOld/4.F) / (1.F+val) * 1.5F; /// vMR;
+						if(valOld < 0.0001)	val = 0;
+						else				val = val / valOld;
+						
+						//DATA val = 1.5F;
+
+						//for(unsigned i=0; i<3; i++)
+						//{
+							aRgba[i] *= val;
+							if(aRgba[i] > 1.F)	aRgba[i] = 1.F;
+						}
+					}
+					else {}
+
+					/*
 					for(unsigned i=0; i<3; i++)
 					{
 						DATA val = aRgba[i];
@@ -1419,29 +1929,35 @@ void MyVolume::Draw(DATA aaCPlane[][4], unsigned w, unsigned h, unsigned runNo, 
 
 							if(bDim_div) {val *= dimVal;}
 							else {}
-						}
-						else {}
 
-						if(bBrightness_div)
-						{ 
-							DATA valOld = val;
-							val = brightnessVal * val / avgV;
-							val = (val + valOld*valOld/4.F) / (1.F+val);
-							val *= 1.5F;
+							aRgba[i] = val;
 						}
 						else {}
-						
+					}
+					*/	
+					/*
 						if(val < 0)			{val = 0;}
 						else if(val > 1.F)	{val = 1.F;}
 						else {}
 
-						aRgba[i] = val;
+						aRgba[i] = val;				
 					}
+					*/
 
+					//aRgba[0] += (1.F-aRgba[3]) * 0.0;
+					//aRgba[1] += (1.F-aRgba[3]) * 0.2F;
+					//aRgba[2] += (1.F-aRgba[3]) * 0.4F;
 					for(unsigned c=0; c<3; c++)
 					{
 						pTexRef->SetCell((float)aRgba[c], x, y, c);
 					}
+//if(fusNo == 1)
+//{
+//	for(unsigned c=0; c<3; c++)
+//	{
+//		pTexRef->SetCell( pTexRef->GetCell(x, y, c) - apTexRfuse[runNo]->GetCell(x, y, c), x, y, c );
+//	}
+//}
 				}
 			}
 			pTexRef->Update();
@@ -1459,12 +1975,19 @@ void MyVolume::Draw(DATA aaCPlane[][4], unsigned w, unsigned h, unsigned runNo, 
 
 			string fName = volName + "_" + strFus + "_" + strRun + ".bmp";
 
-			pTexRef->GetCell(*pImgW);
-			lyrOp.mul.Gen(*pImgW, 255.F);
-			imgIO.Write(fName, *pImgW);					
+			//pTexRef->GetCell(*pImgW);
+			//lyrOp.mul.Gen(*pImgW, 255.F);
+			//imgIO.Write(fName, *pImgW);					
 		} // bFusion
 	}
 	else {} // bStereo
+	clock_t eTime = clock();
+	float tTime = (float)(eTime - sTime) / CLOCKS_PER_SEC;
+	if(bFusion)
+	{
+		cout << tTime << " sec." << endl;
+	}
+	else {}
 	
 	if(bStereo && runNo==1)
 	{
@@ -1548,8 +2071,8 @@ void MyVolume::Draw(DATA aaCPlane[][4], unsigned w, unsigned h, unsigned runNo, 
 				string str;
 				stringstream ss;
 				ss.clear();
-				if(bBrightness_div)		ss << i;
-				else					ss << (i+3);
+				if(bKey_div)		ss << i;
+				else				ss << (i+3);
 				ss >> str;
 
 				apTexImg[i]->GetCell(*pImgW);
@@ -1566,7 +2089,7 @@ void MyVolume::Draw(DATA aaCPlane[][4], unsigned w, unsigned h, unsigned runNo, 
 			bFusion = false;
 			bMap = true;
 		}
-		else {}		
+		else {}	
 	}
 	else {}	
 

@@ -16,7 +16,7 @@ DATA aaObjVec[][4] = {{1.F, 0, 0, 0}, {0, 1.F, 0, 0}, {0, 0, 1.F, 0}};
 DATA aViewCnt[] = {0, 0, -1.5F};
 DATA viewScl;
 DATA viewWide = 0.5F;
-DATA steDis = 0.1F; //0.15F; //0.06F; //0.02F;
+DATA steDis = 0.08F; //0.18F; //0.13 //0.18F; //0.15F; //0.06F; //0.02F;
 
 DATA trsStep = 0.001F;
 DATA rotStep = 0.5F * D2R;
@@ -37,7 +37,7 @@ DATA disAtt = 1.F;
 DATA briScl = 1.F;
 DATA smpNum = 500;
 DATA opaScl = 0.2F;
-DATA mskThrd = 0; //0.5F;
+DATA localL = 0; //0.5F;
 
 bool bMIP = false;
 DATA occScl = 0.2;
@@ -477,8 +477,37 @@ void MyGlWindow::draw()
 	}
 	else
 	{
-		CreatePerspectivePMtx(aaPM, -0.2F, 0.2F, -0.2F*r, 0.2F*r, 0.3F, 3.F);
-		GetNearCPlane(aaNearCPlane, -0.2F, 0.2F, -0.2F*r, 0.2F*r, -0.3F);
+		DATA dd = 8.F;
+		if(!bStereo)
+		{
+			CreatePerspectivePMtx(aaPM, -0.2F, 0.2F, -0.2F*r, 0.2F*r, 0.3F, 3.F);
+			GetNearCPlane(aaNearCPlane, -0.2F, 0.2F, -0.2F*r, 0.2F*r, -0.3F);
+			//CreatePerspectivePMtx(aaPM, -0.18F, 0.18F, -0.18F*r, 0.18F*r, 0.3F, 3.F);
+			//GetNearCPlane(aaNearCPlane, -0.18F, 0.18F, -0.18F*r, 0.18F*r, -0.3F);
+		}
+		else if(runNo == 0)
+		{
+			CreatePerspectivePMtx(aaPM, -0.2F-steDis/dd, 0.2F-steDis/dd, -0.2F*r, 0.2F*r, 0.3F, 3.F);
+			GetNearCPlane(aaNearCPlane, -0.2F-steDis/dd, 0.2F-steDis/dd, -0.2F*r, 0.2F*r, -0.3F);
+			//CreatePerspectivePMtx(aaPM, -0.2F, 0.2F, -0.2F*r, 0.2F*r, 0.3F, 3.F);
+			//GetNearCPlane(aaNearCPlane, -0.2F, 0.2F, -0.2F*r, 0.2F*r, -0.3F);
+			//CreatePerspectivePMtx(aaPM, -0.15F, 0.15F, -0.15F*r, 0.15F*r, 0.3F, 3.F);
+			//GetNearCPlane(aaNearCPlane, -0.15F, 0.15F, -0.15F*r, 0.15F*r, -0.3F);
+		}
+		else if(runNo == 1)
+		{
+			CreatePerspectivePMtx(aaPM, -0.2F+steDis/dd, 0.2F+steDis/dd, -0.2F*r, 0.2F*r, 0.3F, 3.F);
+			GetNearCPlane(aaNearCPlane, -0.2F+steDis/dd, 0.2F+steDis/dd, -0.2F*r, 0.2F*r, -0.3F);
+			//CreatePerspectivePMtx(aaPM, -0.2F, 0.2F, -0.2F*r, 0.2F*r, 0.3F, 3.F);
+			//GetNearCPlane(aaNearCPlane, -0.2F, 0.2F, -0.2F*r, 0.2F*r, -0.3F);
+			//CreatePerspectivePMtx(aaPM, -0.15F, 0.15F, -0.15F*r, 0.15F*r, 0.3F, 3.F);
+			//GetNearCPlane(aaNearCPlane, -0.15F, 0.15F, -0.15F*r, 0.15F*r, -0.3F);
+		}
+		else
+		{
+			assert(0);
+		}
+		//GetNearCPlane(aaNearCPlane, -0.2F, 0.2F, -0.2F*r, 0.2F*r, -0.3F);
 	}
 	DATA aProjMtx[] = {aaPM[0][0], aaPM[1][0], aaPM[2][0], aaPM[3][0],
 					   aaPM[0][1], aaPM[1][1], aaPM[2][1], aaPM[3][1],
@@ -518,6 +547,8 @@ void MyGlWindow::draw()
 	{
 		assert(0);
 	}
+	
+
 	gluLookAt(aEyeNow[0], aEyeNow[1], aEyeNow[2],
 			  aEyeNow[0]-aaEyeVec[2][0], aEyeNow[1]-aaEyeVec[2][1], aEyeNow[2]-aaEyeVec[2][2],
 			  //aViewCnt[0], aViewCnt[1], aViewCnt[2],
@@ -573,7 +604,7 @@ void MyGlWindow::draw()
 	}
 	else if(eRenderMethod == VOLUME)
 	{
-		pVolModel->Draw(aaNearCPlane, w(), h(), runNo, fusNo, mskThrd);
+		pVolModel->Draw(aaNearCPlane, w(), h(), runNo, fusNo, 0);
 	}
 	else
 	{}
@@ -834,7 +865,7 @@ void ReloadTF(Fl_Widget *w, void *v)
 	if(!pVolModel)	return;
 	else {}
 
-	pVolModel->ReloadTF(mskThrd);
+	pVolModel->ReloadTF(0);
 	pRender_glWin->redraw();
 }
 
@@ -1027,11 +1058,11 @@ void ChangeSmpNum(Fl_Widget *w, void *v)
 	pRender_glWin->redraw();
 }
 
-void ChangeMskThrd(Fl_Widget *w, void *v)
+void ChangeLocalL(Fl_Widget *w, void *v)
 {
-	Fl_Value_Slider *pMskThrd = (Fl_Value_Slider*)w;
-	double val = pMskThrd->value();
-	mskThrd = val;
+	Fl_Value_Slider *pLocalL = (Fl_Value_Slider*)w;
+	double val = pLocalL->value();
+	localL = val;
 
 	Fl::focus(pRender_glWin);
 	pRender_glWin->redraw();
@@ -1039,7 +1070,7 @@ void ChangeMskThrd(Fl_Widget *w, void *v)
 
 void Relight(Fl_Widget *w, void *v)
 {
-	pVolModel->MakeShadow(mskThrd);
+	pVolModel->MakeShadow(0);
 
 	Fl::focus(pRender_glWin);
 	pRender_glWin->redraw();
@@ -1279,19 +1310,19 @@ void ChangeDivThrd(Fl_Widget *w, void *v)
 
 //***********************************************
 
-void SetBrightness(Fl_Widget *w, void *v)
+void SetKey(Fl_Widget *w, void *v)
 {
-	Fl_Check_Button *pBBrightness = (Fl_Check_Button*)w;
-	bBrightness_div = (pBBrightness->value())? true: false;
+	Fl_Check_Button *pBKey = (Fl_Check_Button*)w;
+	bKey_div = (pBKey->value())? true: false;
 
 	Fl::focus(pRender_glWin);
 	pRender_glWin->redraw();
 }
 
-void ChangeBrightness(Fl_Widget *w, void *v)
+void ChangeKey(Fl_Widget *w, void *v)
 {
-	Fl_Value_Slider *pBrightness = (Fl_Value_Slider*)w;
-	brightnessVal = pBrightness->value();
+	Fl_Value_Slider *pKey = (Fl_Value_Slider*)w;
+	keyVal = pKey->value();
 
 	Fl::focus(pRender_glWin);
 	pRender_glWin->redraw();
@@ -1299,22 +1330,22 @@ void ChangeBrightness(Fl_Widget *w, void *v)
 
 //***********************************************
 
-void SetContrast(Fl_Widget *w, void *v)
+void SetFeature(Fl_Widget *w, void *v)
 {
-	Fl_Check_Button *pBContrast = (Fl_Check_Button*)w;
-	bContrast_div = (pBContrast->value())? true: false;
+	Fl_Check_Button *pBFeature = (Fl_Check_Button*)w;
+	bFeature_div = (pBFeature->value())? true: false;
 
 	Fl::focus(pRender_glWin);
 	pRender_glWin->redraw();
 }
 
-void ChangeContrast(Fl_Widget *w, void *v)
+void ChangeFeaScl(Fl_Widget *w, void *v)
 {
-	Fl_Value_Slider *pContrast = (Fl_Value_Slider*)w;
-	contrastVal = pContrast->value();
+	Fl_Value_Slider *pFeature = (Fl_Value_Slider*)w;
+	featureVal = pFeature->value();
 
 	Fl::focus(pRender_glWin);
-	pRender_glWin->redraw();	
+	pRender_glWin->redraw();
 }
 
 //***********************************************
@@ -1328,11 +1359,35 @@ void SetDim(Fl_Widget *w, void *v)
 	pRender_glWin->redraw();
 }
 
+/*
 void ChangeDim(Fl_Widget *w, void *v)
 {
 	Fl_Value_Slider *pDim = (Fl_Value_Slider*)w;
 	dimVal = pDim->value();
 
 	Fl::focus(pRender_glWin);
+	pRender_glWin->redraw();	
+}
+*/
+
+//***********************************************
+
+/*
+void SetHalo(Fl_Widget *w, void *v)
+{
+	Fl_Check_Button *pBHalo = (Fl_Check_Button*)w;
+	bHalo_div = (pBHalo->value())? true: false;
+
+	Fl::focus(pRender_glWin);
 	pRender_glWin->redraw();
 }
+
+void ChangHaloThrd(Fl_Widget *w, void *v)
+{
+	Fl_Value_Slider *pHaloThrd = (Fl_Value_Slider*)w;
+	haloThrdVal = pHaloThrd->value();
+
+	Fl::focus(pRender_glWin);
+	pRender_glWin->redraw();
+}
+*/
