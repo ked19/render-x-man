@@ -89,14 +89,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\diffGauss\layer3D.cpp" />
-    <ClCompile Include="..\diffGauss\volumeData.cpp" />
     <ClCompile Include="..\visionComputing\siftImplement\define.cpp" />
     <ClCompile Include="..\visionComputing\siftImplement\denseMatrix.cpp" />
     <ClCompile Include="..\visionComputing\siftImplement\imageIO.cpp" />
     <ClCompile Include="..\visionComputing\siftImplement\layer.cpp" />
+    <ClCompile Include="..\visionComputing\siftImplement\layer3D.cpp" />
     <ClCompile Include="..\visionComputing\siftImplement\layerOperation.cpp" />
     <ClCompile Include="..\visionComputing\siftImplement\matrixOperation.cpp" />
+    <ClCompile Include="..\visionComputing\siftImplement\volumeData.cpp" />
     <ClCompile Include="..\visualIR\cluster_25d\texture.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="..\visionComputing\siftImplement\myMath.cpp" />
@@ -109,14 +109,14 @@
     <ClCompile Include="TRIModel.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\diffGauss\layer3D.h" />
-    <ClInclude Include="..\diffGauss\volumeData.h" />
     <ClInclude Include="..\visionComputing\siftImplement\define.h" />
     <ClInclude Include="..\visionComputing\siftImplement\denseMatrix.h" />
     <ClInclude Include="..\visionComputing\siftImplement\imageIO.h" />
     <ClInclude Include="..\visionComputing\siftImplement\layer.h" />
+    <ClInclude Include="..\visionComputing\siftImplement\layer3D.h" />
     <ClInclude Include="..\visionComputing\siftImplement\layerOperation.h" />
     <ClInclude Include="..\visionComputing\siftImplement\matrixOperation.h" />
+    <ClInclude Include="..\visionComputing\siftImplement\volumeData.h" />
     <ClInclude Include="..\visualIR\cluster_25d\texture.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="..\visionComputing\siftImplement\myMath.h" />
