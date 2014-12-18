@@ -1,6 +1,12 @@
 #include <iostream>
 #include <vector>
 
+// ked begin
+#include "define.h"
+
+#include <fstream>
+// ked end
+
 #pragma once
 
 using namespace std;

@@ -1,6 +1,48 @@
 #include "TRIModel.h"
 
+bool TRIModel::loadFromFile(const char* fileName){
+	int aColorSet[] = {100, 100, 100, 100, 100, 100}; // front & back
 
+	double max[3]={0.0, 0.0, 0.0};
+	double min[3]={0.0, 0.0, 0.0};
+
+	ifstream ifs(fileName);
+	MyAssert(ifs.good());
+
+	unsigned numF;
+	ifs >> numF;
+
+	triangleList.clear();
+	for (unsigned f = 0; f < numF; f++) {
+		Triangle tri(aColorSet);
+		for (unsigned v = 0; v < 3; v++) {
+			static DATA aData[6];
+			ifs >> aData[0] >> aData[1] >> aData[2] 
+				>> aData[3] >> aData[4] >> aData[5];
+			
+			for (unsigned i = 0; i < 3; i++) {
+				if (aData[i] < min[i]) {
+					min[i] = aData[i];
+				} else {}
+				if (aData[i] > max[i]) {
+					max[i] = aData[i];
+				} else {}
+			}
+
+			tri.loadVertex(v, aData);
+		} // vertex
+		triangleList.push_back(tri);
+	} // face
+
+	ifs.close();
+
+	for(unsigned i = 0; i < 3; i++) {
+		center[i] = (min[i] + max[i]) / 2;
+	}
+	return true;
+}
+
+/*
 bool TRIModel::loadFromFile(const char* fileName){
 	char tmp_string[100] = "";
 	double max[3]={0.0, 0.0, 0.0};
@@ -37,6 +79,7 @@ bool TRIModel::loadFromFile(const char* fileName){
 	}
 	return true;
 }
+*/
 void TRIModel::copy(TRIModel * t){
 	for(int i = 0; i < 3; i++){
 		center[i] = t->center[i];

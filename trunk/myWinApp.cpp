@@ -5,6 +5,7 @@
 #include "myWinApp.h"
 
 TRIModel *pTriModel = 0;
+//TRIModel *pTM2 = 0;
 TRIModel canonicalModel;
 
 MyVolume *pVolModel = 0;
@@ -58,6 +59,8 @@ float *pFrame = 0;
 Tex2D *pTexFrame = 0;	
 
 extern bool bMap;
+
+bool bSymetry = false;
 
 //*************************************************************************************************
 
@@ -273,8 +276,11 @@ int MyGlWindow::handle(int evnt)
 
 			redraw();
 			return 1;
-		}
-		else {}
+		} else if (key == 's') {
+			bSymetry = !bSymetry;
+			redraw();
+			return 1;
+		} else {}
 		return 0;
 	}
 	else
@@ -590,7 +596,8 @@ void MyGlWindow::draw()
 	else if(eRenderMethod == FLAT_SH)
 	{
 		glUseProgram(pFlatSh->GetProg());
-		RenderShading(*pTriModel);
+		RenderShading(*pTriModel, 0);
+		//RenderShading(*pTM2, 1);
 	}
 	else if(eRenderMethod == GOURAUD_SH)
 	{
@@ -608,6 +615,42 @@ void MyGlWindow::draw()
 	}
 	else
 	{}
+
+	/*
+	//*******************************************
+	// draw labels
+	//*******************************************
+	static vector<Vect3D<DATA>> vLab;
+	static bool bLabel = false;
+	static unsigned labNum;
+	if (!bLabel) {
+		vLab.clear();
+		ifstream ifs("label.txt");
+		ifs >> labNum;
+
+		for (unsigned lab = 0; lab < labNum; lab++) {
+			Vect3D<DATA> vTmp;
+			ifs >> vTmp.m_x >> vTmp.m_y >> vTmp.m_z;
+			vLab.push_back(vTmp);
+		}
+	
+		bLabel = true;
+	} else {}
+
+	glEnable(GL_DEPTH_TEST);
+	GLUquadricObj *qua = gluNewQuadric();
+	gluQuadricNormals(qua, GLU_SMOOTH);
+	for (unsigned lab = 0; lab < labNum; lab++) {
+	//for (unsigned lab = 30; lab < 33; lab+=3) {
+	//unsigned lab = 31; {
+		glPushMatrix();
+		glTranslatef((float)vLab[lab].m_x, (float)vLab[lab].m_y, (float)vLab[lab].m_z);
+		glColor3f(1.f, 0, 0);
+		gluSphere(qua, 0.01f, 20, 20);
+		glPopMatrix();
+	}
+	glDisable(GL_DEPTH_TEST);
+	*/
 
 	glUseProgram(0);
 	//glPopMatrix();
@@ -809,6 +852,9 @@ void LoadModel(Fl_Widget *w, void *v)
 	delete pTriModel;
 	pTriModel = new TRIModel;
 	pTriModel->loadFromFile(pFChooser->value());
+	//delete pTM2;
+	//pTM2 = new TRIModel;
+	//pTM2->loadFromFile("D:\\working\\renderXman\\faith_eyes.tri");
 	delete pFChooser;
 
 	DATA aaBoundBox[3][2];
