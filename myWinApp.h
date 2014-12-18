@@ -61,6 +61,8 @@ extern Vect3D<DATA> dimRatio;
 extern Vect3D<DATA> pG;
 extern Vect3D<DATA> pR;
 
+extern bool bSymetry;
+
 void LoadModel	(Fl_Widget *w, void *v);
 void ReloadTF	(Fl_Widget *w, void *v);
 
